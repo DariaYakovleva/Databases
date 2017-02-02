@@ -1,0 +1,349 @@
+% !TEX encoding = UTF-8
+% !TEX program = pdflatex
+\documentclass[12pt]{article}
+
+%-------------------------------------
+% CS61 students begin copying here
+\usepackage{amssymb}
+
+\def\ojoin{\setbox0=\hbox{$\bowtie$}%
+  \rule[-.02ex]{.25em}{.4pt}\llap{\rule[\ht0]{.25em}{.4pt}}}
+\def\leftouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie}}
+\def\rightouterjoin{\mathbin{\bowtie\mkern-5.8mu\ojoin}}
+\def\fullouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie\mkern-5.8mu\ojoin}}
+
+% Relational algebra symbols from ftp://reports.stanford.edu/www/dbgroup_only/latex-macros.html
+\newcommand{\select}{\mbox{\Large$\sigma$}}
+\newcommand{\cross}{\mbox{$\times$}}
+\newcommand{\intersection}{\mbox{$\cap$}}
+\newcommand{\intersect}{\mbox{$\cap$}}
+\newcommand{\union}{\mbox{$\cup$}}
+\newcommand{\join}{\mbox{$\Join$}}
+\newcommand{\leftsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\vrule height5pt
+depth0pt width0.6pt\hskip-1.5pt$>$\hskip -2.5pt$<$}}$}}
+\newcommand{\rightsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\hskip-1.5pt$>$\hskip -2.5pt$<$\hskip -1.1pt\vrule height5pt
+depth0pt width0.6pt}}$}}
+\newcommand{\project}{\mbox{\Large$\pi$}}
+\newcommand{\Project}{\mbox{$\Pi$}}
+\newcommand{\aggregatefn}{\mbox{\Large$G$}}
+
+% CS61 students end copying here
+%-------------------------------------
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{graphicx}
+
+\usepackage{amsmath}
+\textheight=24cm
+\textwidth=16cm
+\oddsidemargin=0pt
+\topmargin=-1.5cm
+
+\title{Домашнее задание 5}
+\author{Дарья Яковлева, M3439}
+\date{31.10.2016}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+Задание: Составить выражения реляционной алгебры и соответствующие SQL-запросы для базы данных «Деканат».
+
+
+
+Отношения
+\begin{itemize}
+
+	\item \textbf{Groups}
+	
+		$G(\underline{GID}, GName)$
+	\item \textbf{Students}
+	
+		$S(\underline{SID}, SName, GID)$
+	
+	\item \textbf{Lecturers}
+	
+		$L(\underline{LID}, LName)$
+
+	\item \textbf{Courses}
+	
+		$C(\underline{CID}, CName)$
+		
+	\item \textbf{Marks}
+	
+		$M(Mark, \underline{CID}, \underline{SID})$
+	
+	\item \textbf{Academin plan}
+	
+		$P(\underline{LID}, \underline{CID}, \underline{GID})$
+		
+\end{itemize}
+
+Операции реляционной алгебры и SQL-запросы
+
+\begin{enumerate}	
+   \item \textbf{Информацию о студентах с заданной оценкой по предмету «Базы данных»}
+
+   		$ \project_{S.SName, M.Mark} (\select_{C.CName = X } (S \bowtie C \bowtie M)) $
+   		
+   		 \begin{verbatim}
+SELECT students.student_name
+	, marks.mark_value
+FROM students 
+NATURAL JOIN courses
+NATURAL JOIN marks 
+WHERE courses.course_name = 'Databases';
+		\end{verbatim}
+
+   		
+    \item \textbf{Информацию о студентах не имеющих оценки по предмету «Базы данных»}
+
+       	\begin{enumerate}	
+   			\item \textbf{среди всех студентов}
+   			   			
+   				$ \project_{S.SName} (S) - \project_{S.SName} (\select_{C.CName = X } (S \bowtie C \bowtie M)) $
+   				
+				\begin{verbatim}
+SELECT students.student_name
+FROM students 
+EXCEPT
+SELECT students.student_name
+FROM students 
+NATURAL JOIN courses
+NATURAL JOIN marks 
+WHERE courses.course_name = 'Databases';
+				\end{verbatim}
+   			
+   			\item \textbf{среди студентов, у которых есть этот предмет}
+   			
+   				$ \project_{S.SName} (\select_{C.CName = X } (S \bowtie P \bowtie C)) - \project_{S.SName} (\select_{C.CName = X } (S \bowtie C \bowtie M)) $
+   			
+				\begin{verbatim}
+SELECT students.student_name
+FROM students 
+NATURAL JOIN academicplan
+NATURAL JOIN courses
+WHERE courses.course_name = 'Databases'
+EXCEPT
+SELECT students.student_name
+FROM students 
+NATURAL JOIN courses
+NATURAL JOIN marks 
+WHERE courses.course_name = 'Databases';
+				\end{verbatim}
+   			
+		\end{enumerate}	
+       
+    
+    \item \textbf{Информацию о студентах, имеющих хотя бы одну оценку у заданного лектора}
+    
+		$ \project_{S.SName} (\select_{L.LName = X } (S \bowtie P \bowtie C \bowtie L \bowtie_{S.SID = M.SID \wedge C.CID = M.CID} M)) $
+    
+		\begin{verbatim}
+SELECT DISTINCT students.student_name
+FROM students 
+NATURAL JOIN academicplan
+NATURAL JOIN courses
+NATURAL JOIN lecturers
+INNER JOIN marks
+	ON students.student_id = marks.student_id AND courses.course_id = marks.course_id
+WHERE lecturers.lecturer_name = 'Georgiy Korneev';
+		\end{verbatim}
+            
+    
+    \item \textbf{Идентификаторы студентов, не имеющих ни одной оценки у заданного лектора}
+    
+    		$\project_{S.SName} (S) - \project_{S.SName} (\select_{L.LName = X } (S \bowtie P \bowtie C \bowtie L \bowtie_{S.SID = M.SID \wedge C.CID = M.CID} M)) $
+    
+		\begin{verbatim}
+SELECT students.student_name
+FROM students 
+EXCEPT
+SELECT DISTINCT students.student_name
+FROM students 
+NATURAL JOIN academicplan
+NATURAL JOIN courses
+NATURAL JOIN lecturers
+INNER JOIN marks
+	ON students.student_id = marks.student_id AND courses.course_id = marks.course_id
+WHERE lecturers.lecturer_name = 'Georgiy Korneev';
+		\end{verbatim}
+    
+    \item \textbf{Студентов, имеющих оценки по всем предметам заданного лектора}
+	    $\project_{S.SName, C.CID}  (S \bowtie P \bowtie M) \div (\project_{C.CID} (\select_{L.LName = X } (P \bowtie L))) $
+    
+		\begin{verbatim}
+SELECT students.student_name
+FROM students 
+NATURAL JOIN academicplan
+NATURAL JOIN courses
+NATURAL JOIN lecturers
+INNER JOIN marks
+	ON students.student_id = marks.student_id AND courses.course_id = marks.course_id
+WHERE lecturers.lecturer_name = 'Georgiy Korneev' 
+GROUP BY students.student_id
+HAVING COUNT(lecturers.lecturer_name) = (
+		SELECT COUNT(DISTINCT academicplan.course_id)
+		FROM academicplan
+		INNER JOIN lecturers
+			ON academicplan.lecturer_id = lecturers.lecturer_id
+		WHERE lecturers.lecturer_name = 'Georgiy Korneev'
+	)
+;
+		\end{verbatim}
+    
+    \item \textbf{Для каждого студента имя и предметы, которые он должен посещать}
+    
+		$ \project_{S.SName, C.CName} (S \bowtie P \bowtie C) $
+        
+		\begin{verbatim}
+SELECT students.student_name
+	, courses.course_name
+FROM students 
+NATURAL JOIN academicplan
+NATURAL JOIN courses
+ORDER BY students.student_name;
+		\end{verbatim}
+    
+    \item \textbf{По лектору всех студентов, у которых он хоть что-нибудь преподавал}
+	
+	        $ \project_{S.SName} (\select_{L.LName = X } (S \bowtie P \bowtie L)) $
+    
+		\begin{verbatim}
+SELECT DISTINCT students.student_name
+FROM students 
+NATURAL JOIN academicplan
+NATURAL JOIN lecturers
+WHERE lecturers.lecturer_name = 'Georgiy Korneev';
+		\end{verbatim}
+    
+    \item \textbf{Пары студентов, такие, что все сданные первым студентом предметы сдал и второй студент}
+    
+    		$ (\project_{S.SName, C.CID} (\select_{S.SName = Y, M.Mark \ge 60} (S \bowtie P \bowtie M)) \divideontimes (\project_{S.SName, C.CID} (\select_{S.SName = X, M.Mark \ge 60} (S \bowtie P \bowtie M)))$
+    
+		\begin{verbatim}
+
+		\end{verbatim}
+    
+    
+    \item \textbf{Такие группы и предметы, что все студенты группы сдали предмет}
+
+       		$ (\project_{S.SID, C.CName} (\select_{M.Mark \ge 60} (S \bowtie P \bowtie C \bowtie M))) \divideontimes (\project_{S.SID, G.GName} (S))$
+   
+		\begin{verbatim}
+
+		\end{verbatim}
+    
+    
+    \item \textbf{Средний балл студента}
+       	\begin{enumerate}	
+   			\item \textbf{по идентификатору}   		
+				
+				$ avg_{M.Mark, \emptyset} (\select_{S.SID = X} (S \bowtie M)) $
+				
+				\begin{verbatim}
+SELECT AVG(marks.mark_value) 
+FROM students
+NATURAL JOIN marks
+WHERE students.student_id = 3;
+				\end{verbatim}
+
+   			
+   			\item \textbf{для каждого студента}
+   			
+   				% проблемы с left join
+				$ avg_{M.Mark, \{S.SName\}} (S \rightsemijoin M) $   			
+								
+				\begin{verbatim}
+SELECT students.student_name
+	, AVG(marks.mark_value) 
+FROM students 
+LEFT JOIN marks
+	ON students.student_id = marks.student_id
+GROUP BY students.student_id
+ORDER BY students.student_name;
+				\end{verbatim}
+   			
+		\end{enumerate}	
+    
+    
+    \item \textbf{Средний балл средних баллов студентов каждой группы}
+    
+		$ avg_{M.Mark, \{G.GName\}} (S \bowtie M) $   			    
+    
+		\begin{verbatim}
+SELECT groups.group_name
+	, AVG(marks.mark_value) 
+FROM groups
+NATURAL JOIN students
+NATURAL JOIN marks
+GROUP BY groups.group_id
+ORDER BY groups.group_name;
+		\end{verbatim}
+    
+    
+    \item \textbf{Для каждого студента число предметов, которые у него были, число сданных предметов и число не сданных предметов}
+
+		$ (\varepsilon_{Total = count_{C.CID, S.SName} (\project_{C.CID, S.SName} (S \bowtie P))} \circ$
+		
+		
+		$\varepsilon_{Passed = count_{C.CID, S.SName} (\select_{M.Mark \ge 60} (\project_{C.CID, S.SName} (S \bowtie P \bowtie M))} $
+		
+		$\circ \varepsilon_{Failed=Total - Passed}) (\project_{S.SName} (S))$   			    		
+		\begin{verbatim}
+
+		\end{verbatim}
+
+
+\end{enumerate}
+
+
+Приложение. База данных.
+\begin{verbatim}
+CREATE TABLE IF NOT EXISTS groups (
+	group_id int PRIMARY KEY,
+	group_name varchar(100)
+);
+
+CREATE TABLE IF NOT EXISTS students (
+	student_id int PRIMARY KEY,
+	student_name varchar(100),
+	group_id int REFERENCES groups (group_id)
+);
+
+CREATE TABLE IF NOT EXISTS lecturers (
+	lecturer_id int PRIMARY KEY,
+	lecturer_name varchar(50)
+);
+
+
+CREATE TABLE IF NOT EXISTS courses (
+	course_id int PRIMARY KEY,
+	course_name varchar(50)
+);
+
+CREATE TABLE IF NOT EXISTS marks (
+	mark_value int,
+	course_id int not null REFERENCES courses (course_id),
+	student_id int not null REFERENCES students (student_id),
+	CHECK (mark_value BETWEEN 0 AND 100),
+	PRIMARY KEY (course_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS academicplan (
+	lecturer_id int not null REFERENCES lecturers (lecturer_id),
+	course_id int not null REFERENCES courses (course_id),
+	group_id int not null REFERENCES groups (group_id),
+	PRIMARY KEY (lecturer_id, course_id, group_id)
+);
+\end{verbatim}
+
+\end{document}
+
+%%% Local Variables:
+%%% fill-column: 10
+%%% mode: latex
+%%% coding: utf-8
+%%% TeX-PDF-mode: t
+%%% End:

@@ -1,0 +1,259 @@
+% !TEX encoding = UTF-8
+% !TEX program = pdflatex
+\documentclass[12pt]{article}
+
+%-------------------------------------
+% CS61 students begin copying here
+\usepackage{amssymb}
+
+\def\ojoin{\setbox0=\hbox{$\bowtie$}%
+  \rule[-.02ex]{.25em}{.4pt}\llap{\rule[\ht0]{.25em}{.4pt}}}
+\def\leftouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie}}
+\def\rightouterjoin{\mathbin{\bowtie\mkern-5.8mu\ojoin}}
+\def\fullouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie\mkern-5.8mu\ojoin}}
+
+% Relational algebra symbols from ftp://reports.stanford.edu/www/dbgroup_only/latex-macros.html
+\newcommand{\select}{\mbox{\Large$\sigma$}}
+\newcommand{\cross}{\mbox{$\times$}}
+\newcommand{\intersection}{\mbox{$\cap$}}
+\newcommand{\intersect}{\mbox{$\cap$}}
+\newcommand{\union}{\mbox{$\cup$}}
+\newcommand{\join}{\mbox{$\Join$}}
+\newcommand{\leftsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\vrule height5pt
+depth0pt width0.6pt\hskip-1.5pt$>$\hskip -2.5pt$<$}}$}}
+\newcommand{\rightsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\hskip-1.5pt$>$\hskip -2.5pt$<$\hskip -1.1pt\vrule height5pt
+depth0pt width0.6pt}}$}}
+\newcommand{\project}{\mbox{\Large$\pi$}}
+\newcommand{\Project}{\mbox{$\Pi$}}
+\newcommand{\aggregatefn}{\mbox{\Large$G$}}
+
+% CS61 students end copying here
+%-------------------------------------
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+% \usepackage{minty}
+\usepackage{graphicx}
+\usepackage{color} %% это для отображения цвета в коде
+\usepackage{listings} %% собственно, это и есть пакет listings
+
+\usepackage{caption}
+\DeclareCaptionFont{white}{\color{white}} %% это сделает текст заголовка белым
+%% код ниже нарисует серую рамочку вокруг заголовка кода.
+\DeclareCaptionFormat{listing}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+
+\usepackage{amsmath}
+\textheight=24cm
+\textwidth=16cm
+\oddsidemargin=0pt
+\topmargin=-1.5cm
+
+\title{Домашнее задание 7}
+\author{Дарья Яковлева, M3439}
+\date{22.11.2016}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+Задание: Составить запросы.
+
+~~~
+
+P.S. Будем считать, что у студента долг по предмету, если он изучает этот предмет и имеет по нему менее 60 баллов. 
+
+\begin{enumerate}	
+     \item \textbf{Запрос, удаляющий всех студентов, не имеющих долгов}
+\begin{lstlisting}     
+DELETE
+FROM students 
+WHERE student_id NOT IN 
+(
+	SELECT marks.student_id
+	FROM marks 
+	WHERE marks.mark_value <= 60 and marks.course_id IN
+	(
+		SELECT academicplan.course_id
+		FROM academicplan
+		WHERE students.group_id = academicplan.group_id
+    )	
+);
+\end{lstlisting}
+     
+     \item \textbf{Запрос, удаляющий всех студентов, имеющих 3 и более долгов}
+     
+     \begin{lstlisting}     
+DELETE
+FROM students 
+WHERE student_id IN 
+(
+	SELECT marks.student_id
+	FROM marks 
+	WHERE marks.mark_value <= 60 AND marks.course_id IN
+	(
+		SELECT academicplan.course_id
+		FROM academicplan
+		WHERE students.group_id = academicplan.group_id
+    )
+    GROUP BY marks.student_id
+    HAVING COUNT(marks.student_id) >= 3	
+);
+     
+     \end{lstlisting}     
+     
+     \item \textbf{Запрос, удаляющий все группы, в которых нет студентов}
+
+     \begin{lstlisting}     
+DELETE
+FROM groups
+WHERE group_id NOT IN 
+(
+	SELECT students.group_id
+	FROM students
+);    
+     \end{lstlisting}     
+
+     \item \textbf{View Losers в котором для каждого студента, имеющего долги указано их количество}
+     
+     \begin{lstlisting}     
+CREATE VIEW Losers AS
+SELECT students.student_name, COUNT(marks.student_id)
+FROM students
+NATURAL JOIN marks
+WHERE marks.mark_value <= 60 AND marks.course_id IN
+(
+	SELECT academicplan.course_id
+	FROM academicplan
+	WHERE students.group_id = academicplan.group_id
+)	
+GROUP BY students.student_id;
+     
+     \end{lstlisting}     
+     
+     \item \textbf{Таблица LoserT, в которой содержится та же информация, что во view Losers. Эта таблица должна автоматически обновляться при изменении таблицы с баллами}
+
+     \begin{lstlisting}     
+CREATE TABLE LoserT AS SELECT * FROM Losers;
+
+CREATE OR REPLACE FUNCTION loser_procedure() 
+RETURNS TRIGGER AS $LoserTrig$
+    BEGIN
+		DELETE FROM LoserT *;
+		INSERT INTO LoserT (SELECT * FROM Losers);
+		RETURN NEW;
+    END;
+$LoserTrig$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER LoserTrig
+AFTER INSERT OR UPDATE OR DELETE ON marks
+FOR EACH ROW EXECUTE PROCEDURE loser_procedure();
+     
+     \end{lstlisting}     
+
+     \item \textbf{Отключить автоматическое обновление таблицы LoserT}
+     
+     \begin{lstlisting}     
+     
+DROP TRIGGER IF EXISTS LoserTrig ON marks;
+     
+     \end{lstlisting}     
+     
+     \item \textbf{Запрос (один), который обновляет таблицу LoserT, используя данные из таблицы NewPoints, в которой содержится информация о баллах, проставленных за последний день}
+     
+     \begin{lstlisting}     
+     
+     \end{lstlisting}     
+     
+     \item \textbf{Проверка того, что все студенты одной группы изучают один и тот же набор курсов}
+
+	
+     \begin{lstlisting}     
+     
+     \end{lstlisting}     
+
+     \item \textbf{Триггер, не позволяющий уменьшить баллы студента по предмету. При попытке такого изменения, баллы изменяться не должны} 		                         		               		                                        		               		                         		               		     	
+     \begin{lstlisting}     
+
+CREATE OR REPLACE FUNCTION marks_procedure() 
+ RETURNS TRIGGER AS $LoserTrig$
+    BEGIN
+    	IF (NEW.mark_value < OLD.mark_value) THEN 
+	    	NEW.mark_value = OLD.mark_value;
+    		RETURN NEW;
+    	END IF;
+    	RETURN NULL;
+    END;
+$LoserTrig$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER marksUpdate
+BEFORE UPDATE ON marks
+FOR EACH ROW EXECUTE PROCEDURE marks_procedure();     
+     
+     \end{lstlisting}     
+
+                        
+%	\begin{minty}
+
+%	\end{minty}
+        
+\end{enumerate}    
+
+
+
+\textbf{Приложение. База данных.}
+\begin{lstlisting}     
+CREATE TABLE IF NOT EXISTS groups (
+	group_id int PRIMARY KEY,
+	group_name varchar(100)
+);
+
+CREATE TABLE IF NOT EXISTS students (
+	student_id int PRIMARY KEY,
+	student_name varchar(100),
+	group_id int REFERENCES groups (group_id) 
+		ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS lecturers (
+	lecturer_id int PRIMARY KEY,
+	lecturer_name varchar(50)
+);
+
+
+CREATE TABLE IF NOT EXISTS courses (
+	course_id int PRIMARY KEY,
+	course_name varchar(50)
+);
+
+CREATE TABLE IF NOT EXISTS marks (
+	mark_value int,
+	course_id int not null REFERENCES courses (course_id) 
+		ON DELETE CASCADE ON UPDATE CASCADE,
+	student_id int not null REFERENCES students (student_id) 
+		ON DELETE CASCADE ON UPDATE CASCADE,
+	CHECK (mark_value BETWEEN 0 AND 100),
+	PRIMARY KEY (course_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS academicplan (
+	lecturer_id int not null REFERENCES lecturers (lecturer_id) 
+		ON DELETE CASCADE ON UPDATE CASCADE,
+	course_id int not null REFERENCES courses (course_id) 
+		ON DELETE CASCADE ON UPDATE CASCADE,
+	group_id int not null REFERENCES groups (group_id)
+		 ON DELETE CASCADE ON UPDATE CASCADE,
+	PRIMARY KEY (lecturer_id, course_id, group_id)
+);
+\end{lstlisting}     
+
+\end{document}
+
+%%% Local Variables:
+%%% fill-column: 10
+%%% mode: latex
+%%% coding: utf-8
+%%% TeX-PDF-mode: t
+%%% End:

@@ -1,0 +1,177 @@
+% !TEX encoding = UTF-8
+% !TEX program = pdflatex
+\documentclass[12pt]{article}
+
+%-------------------------------------
+% CS61 students begin copying here
+\usepackage{amssymb}
+
+\def\ojoin{\setbox0=\hbox{$\bowtie$}%
+  \rule[-.02ex]{.25em}{.4pt}\llap{\rule[\ht0]{.25em}{.4pt}}}
+\def\leftouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie}}
+\def\rightouterjoin{\mathbin{\bowtie\mkern-5.8mu\ojoin}}
+\def\fullouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie\mkern-5.8mu\ojoin}}
+
+% Relational algebra symbols from ftp://reports.stanford.edu/www/dbgroup_only/latex-macros.html
+\newcommand{\select}{\mbox{\Large$\sigma$}}
+\newcommand{\cross}{\mbox{$\times$}}
+\newcommand{\intersection}{\mbox{$\cap$}}
+\newcommand{\intersect}{\mbox{$\cap$}}
+\newcommand{\union}{\mbox{$\cup$}}
+\newcommand{\join}{\mbox{$\Join$}}
+\newcommand{\leftsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\vrule height5pt
+depth0pt width0.6pt\hskip-1.5pt$>$\hskip -2.5pt$<$}}$}}
+\newcommand{\rightsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\hskip-1.5pt$>$\hskip -2.5pt$<$\hskip -1.1pt\vrule height5pt
+depth0pt width0.6pt}}$}}
+\newcommand{\project}{\mbox{\Large$\pi$}}
+\newcommand{\Project}{\mbox{$\Pi$}}
+\newcommand{\aggregatefn}{\mbox{\Large$G$}}
+
+% CS61 students end copying here
+%-------------------------------------
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+% \usepackage{minty}
+\usepackage{graphicx}
+\usepackage{color} %% это для отображения цвета в коде
+\usepackage{listings} %% собственно, это и есть пакет listings
+
+\usepackage{caption}
+\DeclareCaptionFont{white}{\color{white}} %% это сделает текст заголовка белым
+%% код ниже нарисует серую рамочку вокруг заголовка кода.
+\DeclareCaptionFormat{listing}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+
+\usepackage{amsmath}
+\textheight=24cm
+\textwidth=16cm
+\oddsidemargin=0pt
+\topmargin=-1.5cm
+
+\title{Домашнее задание 9}
+\author{Дарья Яковлева, M3439}
+\date{06.12.2016}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+Задание:  Реализовать запросы к базе данных Airline с применением хранимых процедур и функций.
+
+Будем считать, что триггер из предыдущего задания работает корректно.
+
+\begin{enumerate}	
+
+          \item \textbf{ FreeSeats(FlightId) — список мест, доступных для продажи и бронирования.}
+
+          \begin{lstlisting} 
+DROP FUNCTION free_seats(fid int);
+CREATE OR REPLACE FUNCTION free_seats(fid int) RETURNS 
+TABLE(seat int) AS $$
+	DECLARE
+		cap int;
+	BEGIN
+    	cap := (SELECT capacity FROM planes WHERE plane_id = (
+	    	SELECT plane_id FROM flights WHERE flight_id = fid));
+
+	    RETURN QUERY (SELECT * FROM generate_series(1, cap) 
+	    AS X WHERE X NOT IN 
+    		(SELECT seat_no FROM seats WHERE flight_id = fid));
+
+    END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM free_seats(1);
+SELECT * FROM free_seats(2);
+
+           \end{lstlisting} 
+
+          \item \textbf{ Reserve(FlightId, SeatNo) — пытается забронировать место. Возвращает истину, если удалось и ложь — в противном случае.}
+
+          \begin{lstlisting} 
+CREATE OR REPLACE FUNCTION reserve(fid int, snum int) RETURNS BOOLEAN AS $$
+    BEGIN
+	   	INSERT INTO seats (flight_id, seat_no, 
+	   	status, reserved_time)
+				VALUES (fid, snum, 1, now());
+		RETURN FOUND;
+    END;
+$$ LANGUAGE plpgsql;
+
+SELECT reserve(1, 1);
+           \end{lstlisting} 
+                    
+          \item \textbf{ExtendReservation(FlightId, SeatNo) — пытается продлить бронь места. Возвращает истину, если удалось и ложь — в противном случае.}
+
+          \begin{lstlisting} 
+CREATE OR REPLACE FUNCTION extend_reservation(fid int, snum int)
+ RETURNS BOOLEAN AS $$
+    BEGIN
+		UPDATE seats SET reserved_time = now()
+		 WHERE flight_id = fid AND seat_no = snum;
+	    RETURN FOUND;
+    END;
+$$ LANGUAGE plpgsql;
+
+SELECT extend_reservation(1, 1);
+           \end{lstlisting} 
+
+          \item \textbf{ BuyFree(FlightId, SeatNo) — пытается купить свободное место. Возвращает истину, если удалось и ложь — в противном случае. }
+
+          \begin{lstlisting} 
+CREATE OR REPLACE FUNCTION buy_free(fid int, snum int)
+ RETURNS BOOLEAN AS $$
+    BEGIN
+		INSERT INTO seats (flight_id, seat_no, 
+		status, reserved_time)
+			VALUES (fid, snum, 2, now());
+		RETURN FOUND;		    	
+    END;
+$$ LANGUAGE plpgsql;
+
+SELECT buy_free(1, 1);
+
+           \end{lstlisting} 
+
+          \item \textbf{ BuyReserved(FlightId, SeatNo) — пытается выкупить забронированное место. Возвращает истину, если удалось и ложь — в противном случае. }
+
+          \begin{lstlisting} 
+CREATE OR REPLACE FUNCTION buy_reserved(fid int, snum int) 
+RETURNS BOOLEAN AS $$
+    BEGIN
+		UPDATE seats SET status = 2 WHERE flight_id = fid 
+		AND seat_no = snum;
+	    RETURN FOUND;
+    END;
+$$ LANGUAGE plpgsql;
+
+SELECT buy_reserved(1, 1);
+
+           \end{lstlisting} 
+
+
+
+          \item \textbf{FlightStatistics() — возвращает статистику по рейсам: возможность бронирования и покупки, число свободных, забронированных и проданных мест.}
+
+          \begin{lstlisting} 
+
+
+           \end{lstlisting} 
+
+          \item \textbf{CompressSeats(FlightId) — оптимизирует занятость мест в самолете. В результате оптимизации, в начале самолета должны быть купленные места, затем — забронированные, а в конце — свободные. Примечание: клиенты, которые уже выкупили билеты так же должны быть пересажены. }
+
+          \begin{lstlisting} 
+
+
+           \end{lstlisting} 
+
+        
+\end{document}
+
+%%% Local Variables:
+%%% fill-column: 10
+%%% mode: latex
+%%% coding: utf-8
+%%% TeX-PDF-mode: t
+%%% End:

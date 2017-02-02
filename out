@@ -1,0 +1,65 @@
+DROP DATABASE
+CREATE DATABASE
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 2
+INSERT 0 3
+ group_id | group_no 
+----------+----------
+        1 | M3438
+        2 | M3439
+(2 строки)
+
+ student_id |      name       | group_id 
+------------+-----------------+----------
+          1 | Ruslan Ahundov  |        1
+          2 | Pavel Asadchy   |        2
+          3 | Eugene Varlamov |        2
+(3 строки)
+
+      name       | group_no 
+-----------------+----------
+ Ruslan Ahundov  | M3438
+ Eugene Varlamov | M3439
+ Pavel Asadchy   | M3439
+(3 строки)
+
+      name       | group_no 
+-----------------+----------
+ Ruslan Ahundov  | M3438
+ Eugene Varlamov | M3439
+ Pavel Asadchy   | M3439
+(3 строки)
+
+DELETE 0
+ALTER TABLE
+INSERT 0 3
+ count 
+-------
+     2
+(1 строка)
+
+ count 
+-------
+     6
+(1 строка)
+
+ count 
+-------
+     2
+(1 строка)
+
+DELETE 2
+DELETE 6
+DELETE 0
+INSERT 0 3
+INSERT 0 6
+ group_no | count 
+----------+-------
+ M3139    |     3
+ M3138    |     2
+ M3137    |     1
+(3 строки)
+

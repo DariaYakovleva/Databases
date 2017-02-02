@@ -1,0 +1,43 @@
+запуск
+psql -U postgres
+
+в мою базу данных
+psql -d ВАШАБАЗА -U ВАШЛОГИН
+
+установка кодировки
+psql \! chcp 1251
+set client_encoding='win1251';
+
+в консоли
+chcp 1251
+
+из файла
+psql -f ctd.sql -U postgres
+
+создание БД
+create Database CTD;
+смена БД
+use CTD;
+
+создание таблиц
+create table Groups (group_id int, group_no char(5));
+create table Students (student_id int, name varchar(30), group_id int);
+
+вставка данных
+insert into Groups (group_id, group_no) values (1, 'M3438'), (2, 'M3439');
+insert into Students (student_id, name, group_id) values (1, 'Ruslan Ahundov', 1), 
+(2, 'Pavel Asadchy', 2), (3, 'Eugene Varlamov', 2);
+
+ничего = null
+
+получение данных
+select group_id, group_no from Groups;
+select student_id, name, group_id from Students;
+select name, group_no from Students natural join Groups;
+select Students.name, Groups.group_no from Students inner join Groups on Students.group_id = Groups.group_id;
+
+удаление
+delete from Groups where group_no = 'M3437';
+
+запрет
+alter table Groups add constraint group_id_unique unique (group_id);

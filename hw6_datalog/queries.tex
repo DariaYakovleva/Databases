@@ -1,0 +1,461 @@
+% !TEX encoding = UTF-8
+% !TEX program = pdflatex
+\documentclass[12pt]{article}
+
+%-------------------------------------
+% CS61 students begin copying here
+\usepackage{amssymb}
+
+\def\ojoin{\setbox0=\hbox{$\bowtie$}%
+  \rule[-.02ex]{.25em}{.4pt}\llap{\rule[\ht0]{.25em}{.4pt}}}
+\def\leftouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie}}
+\def\rightouterjoin{\mathbin{\bowtie\mkern-5.8mu\ojoin}}
+\def\fullouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie\mkern-5.8mu\ojoin}}
+
+% Relational algebra symbols from ftp://reports.stanford.edu/www/dbgroup_only/latex-macros.html
+\newcommand{\select}{\mbox{\Large$\sigma$}}
+\newcommand{\cross}{\mbox{$\times$}}
+\newcommand{\intersection}{\mbox{$\cap$}}
+\newcommand{\intersect}{\mbox{$\cap$}}
+\newcommand{\union}{\mbox{$\cup$}}
+\newcommand{\join}{\mbox{$\Join$}}
+\newcommand{\leftsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\vrule height5pt
+depth0pt width0.6pt\hskip-1.5pt$>$\hskip -2.5pt$<$}}$}}
+\newcommand{\rightsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\hskip-1.5pt$>$\hskip -2.5pt$<$\hskip -1.1pt\vrule height5pt
+depth0pt width0.6pt}}$}}
+\newcommand{\project}{\mbox{\Large$\pi$}}
+\newcommand{\Project}{\mbox{$\Pi$}}
+\newcommand{\aggregatefn}{\mbox{\Large$G$}}
+
+% CS61 students end copying here
+%-------------------------------------
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+% \usepackage{minty}
+\usepackage{graphicx}
+
+\usepackage{amsmath}
+\textheight=24cm
+\textwidth=16cm
+\oddsidemargin=0pt
+\topmargin=-1.5cm
+
+\title{Домашнее задание 6}
+\author{Дарья Яковлева, M3439}
+\date{08.11.2016}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+Задание: Составить запросы в терминах исчисления кортежей и языков Datalog и SQL для базы данных «Деканат».
+
+~~~
+
+Переменные и таблицы
+\begin{itemize}
+
+	\item \textbf{G :: Groups}
+	
+		$G(GID, GName)$
+	\item \textbf{S :: Students}
+	
+		$S(SID, SName, GID)$
+	
+	\item \textbf{L :: Lecturers}
+	
+		$L(LID, LName)$
+
+	\item \textbf{C :: Courses}
+	
+		$C(CID, CName)$
+		
+	\item \textbf{M :: Marks}
+	
+		$M(Mark, CID, SID)$
+	
+	\item \textbf{P :: Academin plan}
+	
+		$P(LID, CID, GID)$
+		
+\end{itemize}
+
+Запросы в терминах исчисления кортежей, языка Datalog и SQL
+
+\begin{enumerate}	
+     \item \textbf{Информацию о студентах с заданной оценкой по предмету «Базы данных»}
+     		
+     		select   $S.SName$  
+     		
+     		from   $S$   
+     		
+     		where   $\exists C$ $\exists M$($C.CName$ =  'Базы данных' $\wedge$ $S.SID = M.SID$ $\wedge$ $M.CID$ = C.CID $\wedge$ $M.Mark$ = $X$)
+     		
+		------------------------
+     		
+     		$Students(SName)$ :- $S(SID, SName, \_)$, $C(CID, CName)$, $M(Mark, CID, SID)$, $CName = $ 'Базы данных', $Mark = X$
+
+		------------------------     		
+
+		\begin{verbatim}
+SELECT students.student_name
+FROM students 
+WHERE 
+	EXISTS (
+		SELECT * 
+		FROM marks 
+		WHERE (
+			students.student_id = marks.student_id 
+			AND marks.mark_value = 100 
+			AND marks.course_id in (
+				SELECT courses.course_id 
+				FROM courses 
+				WHERE courses.course_name = 'Databases'
+			)
+		)
+	);
+		\end{verbatim}
+     
+    \item \textbf{Информацию о студентах не имеющих оценки по предмету «Базы данных»}
+    
+	 \begin{enumerate}    
+        \item \textbf{среди всех студентов}
+        
+     		select   $S.SName$  
+     		
+     		from   $S$   
+     		
+     		where   $\exists C$ $\forall M$ ($C.CName$ =  'Базы данных' $\wedge$ $S.SID = M.SID$ $\wedge$ $M.CID$ <> $C.CID$)
+ 
+		------------------------
+     		
+     		$Students(SName)$ :- $S(SID, SName, \_)$, $C(CID, CName)$, not $M(\_, CID, SID)$, $CName = $ 'Базы данных'
+
+		------------------------     		
+
+				\begin{verbatim}
+SELECT students.student_name
+FROM students 
+WHERE 
+	NOT EXISTS (
+		SELECT * 
+		FROM marks 
+		WHERE (
+			students.student_id = marks.student_id 
+			AND marks.course_id in (
+				SELECT courses.course_id 
+				FROM courses 
+				WHERE courses.course_name = 'Databases'
+			)
+		)
+	);
+				\end{verbatim}
+                              
+        \item \textbf{среди студентов, у которых есть этот предмет}
+        
+        	select   $S.SName$  
+     		
+     		from   $S$   
+     		
+     		where   $\exists P$ $\exists C$ $\forall M$ ($S.GID = P.GID$ $\wedge$ $P.CID$ = $C.CID$ $\wedge$ $C.CName$ =  'Базы данных' $\wedge$ $S.SID = M.SID$ $\wedge$ $M.CID$ <> $C.CID$)
+ 
+ 		------------------------
+     		
+     		$Students(SName)$ :- $S(SID, SName, GID)$, $C(CID, CName)$, $P(\_, CID, GID)$, not $M(\_, CID, SID)$, $CName = $ 'Базы данных'
+
+		------------------------     		
+
+				\begin{verbatim}
+
+SELECT students.student_name
+FROM students 
+WHERE 
+	students.group_id IN (
+		SELECT academicplan.group_id
+		FROM academicplan
+		WHERE students.group_id = academicplan.group_id AND academicplan.course_id in (
+				SELECT courses.course_id 
+				FROM courses 
+				WHERE courses.course_name = 'Databases'
+		)
+	) AND NOT EXISTS (
+		SELECT * 
+		FROM marks 
+		WHERE (
+			students.student_id = marks.student_id 
+			AND marks.course_id in (
+				SELECT courses.course_id 
+				FROM courses 
+				WHERE courses.course_name = 'Databases'
+			)
+		)
+	);
+
+	\end{verbatim}
+
+        \end{enumerate} 
+        
+    \item \textbf{Информацию о студентах, имеющих хотя бы одну оценку у заданного лектора}
+
+        	select   $S.SName$  
+     		
+     		from   $S$   
+     		
+     		where   $\exists L$ $\exists P$ $\exists M$ ($L.LName = X$ $\wedge$ $P.LID$ = $L.LID$ $\wedge$ $S.SID = M.SID$ $\wedge$ $M.CID$ = $P.CID$)
+        
+		------------------------
+     		
+     		$Students(SName)$ :- $S(SID, SName, \_)$, $L(LID, LName)$, $P(LID, CID, \_)$, $M(\_, CID, SID)$, $LName = X$
+
+		------------------------     		
+
+    
+		\begin{verbatim}
+
+SELECT students.student_name
+FROM students 
+WHERE 
+	students.student_id IN (
+		SELECT marks.student_id
+		FROM marks
+		WHERE marks.course_id IN (
+				SELECT academicplan.course_id 
+				FROM academicplan
+				WHERE academicplan.lecturer_id IN (
+					SELECT lecturers.lecturer_id
+					FROM lecturers
+					WHERE lecturers.lecturer_name = 'Georgiy Korneev'
+				)			
+		)
+	) ;
+
+		\end{verbatim}
+
+                                                                                            
+    \item \textbf{Идентификаторы студентов, не имеющих ни одной оценки у заданного лектора}
+
+            	select   $S.SName$  
+     		
+     		from   $S$   
+     		
+     		where   $\exists L$ $\forall P$ $\forall M$ ($L.LName = X$ $\wedge$ $P.LID$ = $L.LID$  $\wedge$ $M.CID$ = $P.CID$ $\wedge$ $S.SID <> M.SID$)    
+
+		------------------------
+
+     		$StudentsHaveMark(SName)$ :- $S(SID, SName, \_)$, $L(LID, LName)$, $P(LID, CID, \_)$, $M(\_, CID, SID)$, $LName = X$     		     		
+
+		$Students(SName)$ :- $S(\_, SName, \_)$, not $StudentsHaveMark(SName)$
+
+		------------------------     		
+
+		\begin{verbatim}
+
+SELECT students.student_name
+FROM students 
+EXCEPT 
+SELECT DISTINCT students.student_name
+FROM students 
+WHERE 
+	students.student_id IN (
+		SELECT marks.student_id
+		FROM marks
+		WHERE marks.course_id IN (
+				SELECT academicplan.course_id 
+				FROM academicplan
+				WHERE academicplan.lecturer_id IN (
+					SELECT lecturers.lecturer_id
+					FROM lecturers
+					WHERE lecturers.lecturer_name = 'Georgiy Korneev'
+				)			
+		)
+	) ;
+
+		\end{verbatim}
+    
+        
+    \item \textbf{Всех студентов, имеющих оценки по всем предметам заданного лектора}
+    
+    		select   $S.SName$  
+     		
+     		from   $S$   
+     		
+     		where   $\exists L$ $\forall P$ $\exists M$ ($L.LName = X$ $\wedge$ $P.LID$ = $L.LID$  $\wedge$ $M.CID$ = $P.CID$ $\wedge$ $S.SID = M.SID$)    
+     		
+		------------------------
+
+     		$LecturerCourses(CID)$ :- $L(LID, LName)$, $P(LID, CID, \_)$, $LName = X$
+     		
+		$CoursesWithNoMark(SID, CID)$ :-  $S(SID, \_, \_)$, $C(CID, \_)$, not $M(\_, CID, SID)$ 
+     		
+     		$Students(SName)$ :- $S(SID, SName, \_)$, $LecturerCourses(CID)$, 
+     		
+     		not $CoursesWithNoMark(SID, CID)$
+
+		------------------------     		
+% !!! как по всем предметам??? ALL
+		\begin{verbatim}
+SELECT students.student_name
+FROM students 
+WHERE 
+	students.student_id IN (
+		SELECT marks.student_id
+		FROM marks
+		WHERE marks.course_id IN (
+				SELECT academicplan.course_id 
+				FROM academicplan
+				WHERE academicplan.lecturer_id IN (
+					SELECT lecturers.lecturer_id
+					FROM lecturers
+					WHERE lecturers.lecturer_name = 'Georgiy Korneev'
+				)			
+		) AND marks.course_id NOT IN (
+			SELECT courses.course_id
+			FROM courses
+			WHERE courses.course_id NOT IN (
+				SELECT academicplan.course_id 
+				FROM academicplan
+				where academicplan.group_id = students.group_id
+			)
+		)
+	) ;
+
+		\end{verbatim}
+    
+    \item \textbf{Для каждого студента имя и курсы, которые он должен посещать}
+
+    		select   $S.SName, C.CName$  
+     		
+     		from   $S, C$   
+     		
+     		where  $\forall P$ ($S.GID$ = $P.GID$  $\wedge$ $P.CID$ = $C.CID$)    
+        
+		------------------------
+     		
+     		$StudentCourses(SName, CName)$ :- $S(\_, SName, GID)$, $C(CID, CName)$, $P(\_, CID, GID)$
+     		
+		------------------------     		
+     		
+		\begin{verbatim}
+		
+SELECT students.student_name, courses.course_name
+FROM students, courses
+WHERE students.group_id IN (
+	SELECT academicplan.group_id
+	FROM academicplan
+	WHERE courses.course_id = academicplan.course_id
+	)
+ORDER BY students.student_name;
+		\end{verbatim}
+    
+    \item \textbf{По лектору всех студентов, у которых он хоть что-нибудь преподавал}
+
+            	select   $S.SName$  
+     		
+     		from   $S$   
+     		
+     		where   $\exists L$ $\exists P$ ($L.LName = X$ $\wedge$ $P.LID$ = $L.LID$ $\wedge$ $S.GID = P.GID$)
+    
+		------------------------
+     		
+     		$Students(SName)$ :- $S(\_, SName, GID)$, $L(LID, LName)$, $P(LID, \_, GID)$, $LName = X$
+
+		------------------------     		
+            
+		\begin{verbatim}
+		
+SELECT students.student_name
+FROM students 
+WHERE 
+	students.group_id IN (
+			SELECT academicplan.group_id 
+			FROM academicplan
+			WHERE academicplan.lecturer_id IN (
+				SELECT lecturers.lecturer_id
+				FROM lecturers
+				WHERE lecturers.lecturer_name = 'Georgiy Korneev'
+			)			
+	);
+		\end{verbatim}
+
+        
+    \item \textbf{Пары студентов, такие, что все сданные первым студентом предметы сдал и второй студент}
+    
+            	select   $S.SName$ $as$ $S1$, $S.SName$ $as$ $S2$  
+     		
+     		from   $S$   
+     		
+     		where   $\forall M1$ $\exists M2$ ($M1.SID = S1.SID$ $\wedge$ $M1.Mark$ $\ge 60$ $\wedge$ $M2.SID = S2.SID$ $\wedge$ $M2.Mark$ $\ge 60$)
+    	% как???
+		------------------------
+     		$StudentPassCourses(SName, CID)$ :- $S(SID, SName, \_)$, $M(Mark, CID, SID)$, $Mark \ge 60$
+     		
+     		$Students(SName1, SName2)$ :- $StudentPassCourses(SName1, CID)$, $S(SID, SName2, \_)$,  $M(Mark, CID, SID)$, $Mark \ge 60$
+
+		------------------------     		
+            
+%	\begin{minty}
+% !!! как???	
+%SELECT students.student_name
+%FROM students 
+%WHERE students.student_id IN (
+%	SELECT marks.student_id
+%	FROM marks
+%	WHERE marks.mark_value >= 60
+%	);
+	
+
+%	\end{minty}
+        
+\end{enumerate}    
+
+
+
+Приложение. База данных.
+\begin{verbatim}
+CREATE TABLE IF NOT EXISTS groups (
+	group_id int PRIMARY KEY,
+	group_name varchar(100)
+);
+
+CREATE TABLE IF NOT EXISTS students (
+	student_id int PRIMARY KEY,
+	student_name varchar(100),
+	group_id int REFERENCES groups (group_id)
+);
+
+CREATE TABLE IF NOT EXISTS lecturers (
+	lecturer_id int PRIMARY KEY,
+	lecturer_name varchar(50)
+);
+
+
+CREATE TABLE IF NOT EXISTS courses (
+	course_id int PRIMARY KEY,
+	course_name varchar(50)
+);
+
+CREATE TABLE IF NOT EXISTS marks (
+	mark_value int,
+	course_id int not null REFERENCES courses (course_id),
+	student_id int not null REFERENCES students (student_id),
+	CHECK (mark_value BETWEEN 0 AND 100),
+	PRIMARY KEY (course_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS academicplan (
+	lecturer_id int not null REFERENCES lecturers (lecturer_id),
+	course_id int not null REFERENCES courses (course_id),
+	group_id int not null REFERENCES groups (group_id),
+	PRIMARY KEY (lecturer_id, course_id, group_id)
+);
+\end{verbatim}
+
+\end{document}
+
+%%% Local Variables:
+%%% fill-column: 10
+%%% mode: latex
+%%% coding: utf-8
+%%% TeX-PDF-mode: t
+%%% End:

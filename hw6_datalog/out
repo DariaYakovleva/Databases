@@ -1,0 +1,103 @@
+DROP DATABASE
+CREATE DATABASE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 5
+INSERT 0 7
+INSERT 0 3
+INSERT 0 5
+INSERT 0 10
+INSERT 0 11
+ student_id |     student_name     | group_id 
+------------+----------------------+----------
+          1 | Ivan Belonogov       |        1
+          2 | Evgeny Nemchenko     |        5
+          3 | Michail Putilin      |        1
+          4 | Appolinaria Romanova |        3
+          5 | Anna Rodionova       |        2
+          6 | Vyacheslav Moklev    |        1
+          7 | Daniil Prokopenko    |        5
+(7 строк)
+
+     student_name     
+----------------------
+ Ivan Belonogov
+ Appolinaria Romanova
+(2 строки)
+
+   student_name    
+-------------------
+ Evgeny Nemchenko
+ Anna Rodionova
+ Daniil Prokopenko
+(3 строки)
+
+  student_name  
+----------------
+ Anna Rodionova
+(1 строка)
+
+     student_name     
+----------------------
+ Ivan Belonogov
+ Michail Putilin
+ Appolinaria Romanova
+ Vyacheslav Moklev
+(4 строки)
+
+   student_name    
+-------------------
+ Daniil Prokopenko
+ Anna Rodionova
+ Evgeny Nemchenko
+(3 строки)
+
+     student_name     
+----------------------
+ Ivan Belonogov
+ Michail Putilin
+ Appolinaria Romanova
+ Vyacheslav Moklev
+(4 строки)
+
+     student_name     |          course_name          
+----------------------+-------------------------------
+ Anna Rodionova       | Algorithm and Data Structures
+ Anna Rodionova       | Databases
+ Appolinaria Romanova | Databases
+ Appolinaria Romanova | Algorithm and Data Structures
+ Appolinaria Romanova | Java
+ Daniil Prokopenko    | Algorithm and Data Structures
+ Daniil Prokopenko    | English
+ Evgeny Nemchenko     | Algorithm and Data Structures
+ Evgeny Nemchenko     | English
+ Ivan Belonogov       | Databases
+ Ivan Belonogov       | Algorithm and Data Structures
+ Ivan Belonogov       | Java
+ Michail Putilin      | Databases
+ Michail Putilin      | Algorithm and Data Structures
+ Michail Putilin      | Java
+ Vyacheslav Moklev    | Databases
+ Vyacheslav Moklev    | Java
+ Vyacheslav Moklev    | Algorithm and Data Structures
+(18 строк)
+
+     student_name     
+----------------------
+ Ivan Belonogov
+ Michail Putilin
+ Appolinaria Romanova
+ Anna Rodionova
+ Vyacheslav Moklev
+(5 строк)
+

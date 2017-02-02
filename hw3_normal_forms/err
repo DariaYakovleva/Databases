@@ -1,0 +1,79 @@
+DROP DATABASE
+CREATE DATABASE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 6
+INSERT 0 3
+INSERT 0 5
+INSERT 0 5
+ group_id | group_name 
+----------+------------
+        1 | M3439
+        2 | M3339
+        3 | M3239
+        4 | M3139
+        5 | M3438
+(5 строк)
+
+ student_id |     student_name     | group_id 
+------------+----------------------+----------
+          1 | Ivan Belonogov       |        1
+          2 | Evgeny Nemchenko     |        5
+          3 | Michail Putilin      |        4
+          4 | Appolinaria Romanova |        3
+          5 | Anna Rodionova       |        2
+          6 | Vyacheslav Moklev    |        1
+(6 строк)
+
+ lecturer_id |   lecturer_name   
+-------------+-------------------
+           1 | Georgiy Korneev
+           2 | Andrew Stankevich
+           3 | Oksana Pavlova
+(3 строки)
+
+ course_id |          course_name          
+-----------+-------------------------------
+         1 | Java
+         2 | Algorithm and Data Structures
+         3 | English
+         4 | Databases
+         5 | DMath
+(5 строк)
+
+ mark_value | course_id | student_id 
+------------+-----------+------------
+        100 |         2 |          1
+        100 |         2 |          2
+        100 |         2 |          3
+        100 |         2 |          4
+        100 |         2 |          5
+(5 строк)
+
+     student_name     | group_name 
+----------------------+------------
+ Ivan Belonogov       | M3439
+ Evgeny Nemchenko     | M3438
+ Michail Putilin      | M3139
+ Appolinaria Romanova | M3239
+ Anna Rodionova       | M3339
+ Vyacheslav Moklev    | M3439
+(6 строк)
+
+     student_name     | mark_value |          course_name          
+----------------------+------------+-------------------------------
+ Ivan Belonogov       |        100 | Algorithm and Data Structures
+ Evgeny Nemchenko     |        100 | Algorithm and Data Structures
+ Michail Putilin      |        100 | Algorithm and Data Structures
+ Appolinaria Romanova |        100 | Algorithm and Data Structures
+ Anna Rodionova       |        100 | Algorithm and Data Structures
+(5 строк)
+

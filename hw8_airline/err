@@ -1,0 +1,6 @@
+psql:airline.sql:4: NOTICE:  drop cascades to constraint flights_plane_id_fkey on table flights
+psql:airline.sql:5: NOTICE:  drop cascades to constraint seats_flight_id_fkey on table seats
+psql:airline.sql:45: ERROR:  column "reserved_time" is of type timestamp without time zone but expression is of type integer
+—“–Œ ¿ 2:  VALUES (1, 1, 1, 1),
+                            ^
+œŒƒ— ¿« ¿:  You will need to rewrite or cast the expression.

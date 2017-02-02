@@ -1,0 +1,138 @@
+DROP DATABASE
+CREATE DATABASE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 5
+INSERT 0 7
+INSERT 0 3
+INSERT 0 5
+INSERT 0 10
+INSERT 0 11
+ student_id |     student_name     | group_id 
+------------+----------------------+----------
+          1 | Ivan Belonogov       |        1
+          2 | Evgeny Nemchenko     |        5
+          3 | Michail Putilin      |        1
+          4 | Appolinaria Romanova |        3
+          5 | Anna Rodionova       |        2
+          6 | Vyacheslav Moklev    |        1
+          7 | Daniil Prokopenko    |        5
+(7 строк)
+
+     student_name     | mark_value 
+----------------------+------------
+ Ivan Belonogov       |        100
+ Michail Putilin      |         40
+ Vyacheslav Moklev    |         98
+ Appolinaria Romanova |        100
+(4 строки)
+
+   student_name    
+-------------------
+ Daniil Prokopenko
+ Anna Rodionova
+ Evgeny Nemchenko
+(3 строки)
+
+  student_name  
+----------------
+ Anna Rodionova
+(1 строка)
+
+     student_name     
+----------------------
+ Appolinaria Romanova
+ Ivan Belonogov
+ Michail Putilin
+ Vyacheslav Moklev
+(4 строки)
+
+   student_name    
+-------------------
+ Daniil Prokopenko
+ Anna Rodionova
+ Evgeny Nemchenko
+(3 строки)
+
+     student_name     
+----------------------
+ Appolinaria Romanova
+ Vyacheslav Moklev
+(2 строки)
+
+     student_name     |          course_name          
+----------------------+-------------------------------
+ Anna Rodionova       | Algorithm and Data Structures
+ Anna Rodionova       | Databases
+ Appolinaria Romanova | Algorithm and Data Structures
+ Appolinaria Romanova | Databases
+ Appolinaria Romanova | Java
+ Daniil Prokopenko    | English
+ Daniil Prokopenko    | Algorithm and Data Structures
+ Evgeny Nemchenko     | Algorithm and Data Structures
+ Evgeny Nemchenko     | English
+ Ivan Belonogov       | Databases
+ Ivan Belonogov       | Java
+ Ivan Belonogov       | Algorithm and Data Structures
+ Michail Putilin      | Databases
+ Michail Putilin      | Algorithm and Data Structures
+ Michail Putilin      | Java
+ Vyacheslav Moklev    | Java
+ Vyacheslav Moklev    | Databases
+ Vyacheslav Moklev    | Algorithm and Data Structures
+(18 строк)
+
+     student_name     
+----------------------
+ Anna Rodionova
+ Appolinaria Romanova
+ Ivan Belonogov
+ Michail Putilin
+ Vyacheslav Moklev
+(5 строк)
+
+ student_id |         avg          
+------------+----------------------
+          1 | 100.0000000000000000
+          2 | 100.0000000000000000
+          3 |  69.5000000000000000
+          4 |  94.0000000000000000
+          5 | 100.0000000000000000
+          6 |  95.0000000000000000
+          7 |                     
+(7 строк)
+
+         avg         
+---------------------
+ 69.5000000000000000
+(1 строка)
+
+     student_name     |         avg          
+----------------------+----------------------
+ Anna Rodionova       | 100.0000000000000000
+ Appolinaria Romanova |  94.0000000000000000
+ Daniil Prokopenko    |                     
+ Evgeny Nemchenko     | 100.0000000000000000
+ Ivan Belonogov       | 100.0000000000000000
+ Michail Putilin      |  69.5000000000000000
+ Vyacheslav Moklev    |  95.0000000000000000
+(7 строк)
+
+ group_name |         avg          
+------------+----------------------
+ M3239      |  94.0000000000000000
+ M3339      | 100.0000000000000000
+ M3438      | 100.0000000000000000
+ M3439      |  88.1666666666666667
+(4 строки)
+

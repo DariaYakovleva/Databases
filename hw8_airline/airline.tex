@@ -1,0 +1,236 @@
+% !TEX encoding = UTF-8
+% !TEX program = pdflatex
+\documentclass[12pt]{article}
+
+%-------------------------------------
+% CS61 students begin copying here
+\usepackage{amssymb}
+
+\def\ojoin{\setbox0=\hbox{$\bowtie$}%
+  \rule[-.02ex]{.25em}{.4pt}\llap{\rule[\ht0]{.25em}{.4pt}}}
+\def\leftouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie}}
+\def\rightouterjoin{\mathbin{\bowtie\mkern-5.8mu\ojoin}}
+\def\fullouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie\mkern-5.8mu\ojoin}}
+
+% Relational algebra symbols from ftp://reports.stanford.edu/www/dbgroup_only/latex-macros.html
+\newcommand{\select}{\mbox{\Large$\sigma$}}
+\newcommand{\cross}{\mbox{$\times$}}
+\newcommand{\intersection}{\mbox{$\cap$}}
+\newcommand{\intersect}{\mbox{$\cap$}}
+\newcommand{\union}{\mbox{$\cup$}}
+\newcommand{\join}{\mbox{$\Join$}}
+\newcommand{\leftsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\vrule height5pt
+depth0pt width0.6pt\hskip-1.5pt$>$\hskip -2.5pt$<$}}$}}
+\newcommand{\rightsemijoin}{\mbox{$\mathrel{\raise1pt\hbox{\hskip-1.5pt$>$\hskip -2.5pt$<$\hskip -1.1pt\vrule height5pt
+depth0pt width0.6pt}}$}}
+\newcommand{\project}{\mbox{\Large$\pi$}}
+\newcommand{\Project}{\mbox{$\Pi$}}
+\newcommand{\aggregatefn}{\mbox{\Large$G$}}
+
+% CS61 students end copying here
+%-------------------------------------
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+% \usepackage{minty}
+\usepackage{graphicx}
+\usepackage{color} %% это для отображения цвета в коде
+\usepackage{listings} %% собственно, это и есть пакет listings
+
+\usepackage{caption}
+\DeclareCaptionFont{white}{\color{white}} %% это сделает текст заголовка белым
+%% код ниже нарисует серую рамочку вокруг заголовка кода.
+\DeclareCaptionFormat{listing}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+
+\usepackage{amsmath}
+\textheight=24cm
+\textwidth=16cm
+\oddsidemargin=0pt
+\topmargin=-1.5cm
+
+\title{Домашнее задание 8}
+\author{Дарья Яковлева, M3439}
+\date{29.11.2016}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+Задание: Реализовать базу данных Airline, которая содержит информацию о рейсах самолётов.
+
+\begin{enumerate}	
+ \item \textbf{База данных}
+ 
+\begin{lstlisting}     
+
+CREATE DATABASE airline;
+
+CREATE TABLE IF NOT EXISTS planes (
+	plane_id int PRIMARY KEY,
+	capacity int not null
+);
+
+CREATE TABLE IF NOT EXISTS flights (
+	flight_id SERIAL PRIMARY KEY,
+	flight_num int,
+	flight_time timestamp without time zone,
+	plane_id int not null REFERENCES planes (plane_id) 
+	ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS seats (
+	flight_id int REFERENCES flights (flight_id) 
+	ON DELETE CASCADE ON UPDATE CASCADE,
+	seat_no int not null,
+	status int not null, --  1 -- reserved, 2 -- bought
+	reserved_time timestamp without time zone,
+	PRIMARY KEY(flight_id, seat_no)
+);
+
+INSERT INTO planes (plane_id, capacity)
+	VALUES (1, 100),
+		   (2, 120),
+		   (3, 50);
+
+INSERT INTO flights (flight_num, flight_time, plane_id)
+	VALUES (1, timestamp '2016-11-28 20:38:40', 1),
+		   (2, timestamp '2016-11-29 19:38:40', 2),
+		   (3, timestamp '2016-12-01 01:38:20', 1),
+		   (4, timestamp '2016-12-14 03:38:40', 2),
+		   (5, timestamp '2016-12-16 13:38:10', 2);
+
+INSERT INTO seats (flight_id, seat_no, status, reserved_time)
+	VALUES (1, 1, 1, timestamp '2016-11-28 13:38:10'),
+		   (1, 2, 2, timestamp '2016-11-28 10:38:10'),
+		   (1, 3, 1, timestamp '2016-11-27 13:38:10'),
+		   (2, 2, 2, timestamp '2016-11-26 13:38:10'),
+		   (2, 5, 1, timestamp '2016-11-29 13:38:10');
+\end{lstlisting}     
+
+     \item \textbf{Поддержка бронирования и покупки мест}
+
+\begin{lstlisting} 
+
+CREATE OR REPLACE FUNCTION seats_action() RETURNS TRIGGER AS $SeatsAct$
+	DECLARE
+		timespent interval;
+		cur_bought int;
+		flight_time interval;
+		cur_capacity int;		
+    BEGIN
+    	timespent := NEW.reserved_time - (SELECT flight_time 
+    	FROM flights WHERE NEW.flights_id = flights.flights_id);
+    	flight_time := now() - (SELECT flight_time FROM flights 
+    	WHERE NEW.flights_id = flights.flights_id);
+    	cur_capacity := SELECT capacity FROM planes 
+    	WHERE plane_id = (
+	    	SELECT plane_id FROM flights 
+	    	WHERE flight_id = NEW.flight_id);
+
+	    IF (NEW.seat_no > cur_capacity) 
+	    THEN
+	    	NEW := OLD;
+	    	RETURN NULL;
+	    END IF;
+    	
+    	
+    	IF (NEW.status = 2 
+    		AND 
+    		(SELECT EXTRACT (DAY FROM timespent)) = 0 
+    		AND 
+    		(SELECT EXTRACT (HOUR FROM timespent)) < 2) 
+    		OR 
+    		(NEW.status = 1 
+    		AND 
+    		(SELECT EXTRACT (DAY FROM timespent)) < 1
+    		AND (SELECT EXTRACT (DAY FROM flight_time)) > 0) 
+    	THEN
+    		NEW := OLD;
+    		RETURN OLD;
+    	END IF;  
+    	
+    	cur_bought := (SELECT count(seats_no) 
+    	FROM seats WHERE flight_id = NEW.flight_id);
+
+    	IF cur_bought = (SELECT capacity FROM planes WHERE 
+    	plane_id = (
+	    	SELECT plane_id FROM flights
+	    	 WHERE flight_id = NEW.flight_id))
+	    THEN
+	    	NEW := OLD;
+	    	RETURN NULL;
+	    END IF; 		
+
+
+        IF (TG_OP = 'UPDATE') AND (NEW.status = 1) AND (OLD.status = 1)
+        THEN
+            NEW.reserved_time := now();
+            RETURN NEW;
+        ELSIF (TG_OP = 'INSERT') 
+        THEN
+			IF (
+				SELECT count(*) 
+	    		FROM seats
+		    	WHERE flight_id = NEW.flight_id AND
+    				  seat_no = NEW.seat_no) > 0 
+    			AND (
+    			SELECT status
+	    		FROM seats
+		    	WHERE flight_id = NEW.flight_id AND
+    				  seat_no = NEW.seat_no) = 1
+    		THEN
+    			IF (now() - (SELECT reserved_time
+		    		FROM seats
+	    			WHERE flight_id = NEW.flight_id AND
+	    			  seat_no = NEW.seat_no)) > 24
+	    		THEN
+	    			DELETE 
+		    		FROM seats       	
+	    			WHERE flight_id = NEW.flight_id AND
+    			  		seat_no = NEW.seat_no;
+    			  	RETURN NEW;
+    			ELSE
+    				NEW := OLD;
+    				RETURN NULL;
+    			END IF;
+    		END IF;        			
+    	END IF;
+    	RETURN NEW;
+    END;
+$SeatsAct$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER SeatsAct
+BEFORE INSERT OR UPDATE ON seats
+FOR EACH ROW EXECUTE PROCEDURE seats_action();
+
+\end{lstlisting}
+
+          \item \textbf{Добавление индексов}
+          
+          	Нужно добавить индекс $(flight\_id, flight\_time)$, так как это это большой и частый запрос.
+          	
+          	Не нужно добавлять индексы $(flight\_id, seat\_no)$, $(flight\_id, reserved\_time)$, так как это частые запросы, но они ограничены размером самолета, который редко бывает больше 1000.
+          	
+          \item \textbf{Пусть частым запросом является определение средней заполненности самолёта по рейсу. Какие индексы могут помочь при исполнении данного запроса?}
+          
+          В этом случае индекс $(flight\_id, status)$ может помочь, так с помощью него можно посчитать среднюю заполненость самолета.
+          
+          \item \textbf{Добавление индексов на языке SQL}
+          \begin{lstlisting} 
+          CREATE INDEX USING HASH ON TABLE
+           flights (flight_id, flight_time)
+          CREATE INDEX USING HASH ON TABLE 
+          seats (flight_id, status)
+          \end{lstlisting} 
+          
+
+\end{document}
+
+%%% Local Variables:
+%%% fill-column: 10
+%%% mode: latex
+%%% coding: utf-8
+%%% TeX-PDF-mode: t
+%%% End:
